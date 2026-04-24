@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Whack-a-Head</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: linear-gradient(to bottom, #a8e6ff, #ffffff);
+    }
+    h1 { margin-top: 20px; }
+    #score, #lives { font-size: 20px; margin: 5px; }
+
+    .board {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+      gap: 12px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .hole {
+      width: 90px;
+      height: 90px;
+      background: #5c3d2e;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    /* PERSON */
+    .person {
+      width: 65px;
+      height: 65px;
+      background: #ffe0bd;
+      border-radius: 50%;
+      position: absolute;
+      bottom: -70px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: bottom 0.25s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      border: 3px solid #333;
+    }
+
+    /* BOMB - viel auffälliger */
+    .bomb {
+      width: 70px;
+      height: 70px;
+      background: red;
+      border-radius: 50%;
+      position: absolute;
+      bottom: -75px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: bottom 0.25s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      color: white;
+      border: 4px solid yellow;
+      box-shadow: 0 0 15px red;
+    }
+
+    .hole.active .person,
+    .hole.bomb-active .bomb {
+      bottom: 10px;
+    }
+
+    .bomb span {
+      animation: blink 0.4s infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+    }
+  </style>
+</head>
+<body>
+
+<h1>Whack-a-Head</h1>
+<div id="score">Score: 0</div>
+<div id="lives">❤️❤️❤️</div>
+<div class="board" id="board"></div>
+
+<script>
+  const board = document.getElementById("board");
+  const scoreDisplay = document.getElementById("score");
+  const livesDisplay = document.getElementById("lives");
+
+  let score = 0;
+  let lives = 3;
+  let speed = 1200;
+  let gameOver = false;
+
+  const faces = ["😀","😎","😆","😜","🤓","😇","🥳"];
+
+  const layout = [4,3,2,1];
+  const holes = [];
+
+  layout.forEach(count => {
+    const row = document.createElement("div");
+    row.classList.add("row");
+
+    for (let i=0;i<count;i++){
+      const hole = document.createElement("div");
+      hole.classList.add("hole");
+
+      const person = document.createElement("div");
+      person.classList.add("person");
+      const face = document.createElement("span");
+      person.appendChild(face);
+
+      const bomb = document.createElement("div");
+      bomb.classList.add("bomb");
+      bomb.innerHTML = "<span>💣</span>";
+
+      hole.appendChild(person);
+      hole.appendChild(bomb);
+      row.appendChild(hole);
+      holes.push({hole, person, face});
+
+      hole.addEventListener("click", ()=>{
+        if (gameOver) return;
+
+        if (hole.classList.contains("bomb-active")){
+          lives--;
+          updateLives();
+          hole.classList.remove("bomb-active");
+
+          if (lives<=0){
+            gameOver=true;
+            alert("Game Over! Score: "+score);
+          }
+          return;
+        }
+
+        if (hole.classList.contains("active")){
+          score++;
+          hole.classList.remove("active");
+          updateScore();
+
+          speed = Math.max(450, speed - 25);
+        }
+      });
+    }
+
+    board.appendChild(row);
+  });
+
+  function updateScore(){
+    scoreDisplay.textContent = "Score: "+score;
+  }
+
+  function updateLives(){
+    livesDisplay.textContent = "❤️".repeat(lives);
+  }
+
+  function randomHole(){
+    return holes[Math.floor(Math.random()*holes.length)];
+  }
+
+  function spawn(){
+    const obj = randomHole();
+    const hole = obj.hole;
+
+    // Bomben erst ab Score 5 häufiger
+    const bombChance = score > 5 ? 0.35 : 0.15;
+    const isBomb = Math.random() < bombChance;
+
+    if (isBomb){
+      hole.classList.add("bomb-active");
+    } else {
+      obj.face.textContent = faces[Math.floor(Math.random()*faces.length)];
+      hole.classList.add("active");
+    }
+
+    setTimeout(()=>{
+      hole.classList.remove("active");
+      hole.classList.remove("bomb-active");
+    }, speed*0.8);
+  }
+
+  function gameLoop(){
+    if (gameOver) return;
+
+    spawn();
+
+    // mehrere gleichzeitig erst ab höherem Score
+    if (score > 8 && Math.random() < 0.5) {
+      spawn();
+    }
+    if (score > 15 && Math.random() < 0.5) {
+      spawn();
+    }
+
+    setTimeout(gameLoop, speed);
+  }
+
+  gameLoop();
+</script>
+
+</body>
+</html>
